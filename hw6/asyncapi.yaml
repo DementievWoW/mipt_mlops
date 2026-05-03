@@ -1,0 +1,65 @@
+asyncapi: 2.6.0
+info:
+  title: ML Inference Pipeline (gRPC Streaming)
+  version: 1.0.0
+  description: >
+    Асинхронный конвейер инференса на базе rubert-tiny2 и gRPC bidirectional streaming.
+    Клиент непрерывно отправляет тексты, сервер накапливает их в батч, выполняет
+    препроцессинг, инференс и возвращает эмбеддинги.
+    
+    **Цепочка событий (логическая)**:
+    1. `text.preprocess`: токенизация и формирование батча  
+    2. `model.inference`: прогон батча через нейросеть  
+    3. `result.persist`: маппинг результатов на correlation_id и отправка клиенту
+servers:
+  grpc:
+    url: 0.0.0.0:50051
+    protocol: grpc
+channels:
+  inference.StreamPredictions:
+    description: Двунаправленный поток предсказаний.
+    publish:
+      summary: Клиент отправляет текст на обработку.
+      operationId: sendText
+      message:
+        $ref: '#/components/messages/TextRequest'
+    subscribe:
+      summary: Сервер возвращает вектор эмбеддинга.
+      operationId: receiveEmbedding
+      message:
+        $ref: '#/components/messages/PredictionResponse'
+components:
+  messages:
+    TextRequest:
+      name: TextRequest
+      title: Сырой текст
+      summary: Входящий запрос с идентификатором и текстом.
+      payload:
+        type: object
+        required:
+          - correlation_id
+          - text
+        properties:
+          correlation_id:
+            type: string
+            description: Уникальный идентификатор запроса (для сопоставления с ответом).
+          text:
+            type: string
+            description: Текст для векторизации (до 512 токенов для rubert-tiny2).
+    PredictionResponse:
+      name: PredictionResponse
+      title: Вектор эмбеддинга
+      summary: Результат инференса — 768-мерный эмбеддинг.
+      payload:
+        type: object
+        required:
+          - correlation_id
+          - embedding
+        properties:
+          correlation_id:
+            type: string
+          embedding:
+            type: array
+            items:
+              type: number
+            description: Усреднённый по токенам эмбеддинг текста (768 float).
