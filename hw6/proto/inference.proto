@@ -1,10 +1,8 @@
 syntax = "proto3";
-
 package inference;
 
 service InferencePipeline {
-  // Клиент отправляет поток сообщений, сервер отвечает потоком результатов.
-  rpc StreamPredictions(stream PredictionRequest) returns (stream PredictionResponse);
+  rpc Predict (PredictionRequest) returns (PredictionResponse);
 }
 
 message PredictionRequest {
@@ -14,5 +12,5 @@ message PredictionRequest {
 
 message PredictionResponse {
   string correlation_id = 1;
-  repeated float embedding = 2;   // вектор эмбеддинга (768 чисел)
+  repeated float embedding = 2;
 }

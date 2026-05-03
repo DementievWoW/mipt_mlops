@@ -1,0 +1,11 @@
+# Количество реплик
+replicaCount: 1
+
+image:
+  repository: grpc-inference
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 50051

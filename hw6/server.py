@@ -1,42 +1,36 @@
+# server.py
 import asyncio
 import grpc
-from concurrent.futures import ThreadPoolExecutor
-import inference_pb2
+import redis.asyncio as redis
 import inference_pb2_grpc
-from model_loader import ModelHolder
-from batching import Batcher
+from app import (
+    ModelHolder, Batcher, InferenceServicer,
+    preprocess_worker, inference_worker
+)
 
-class InferenceServicer(inference_pb2_grpc.InferencePipelineServicer):
-    def __init__(self):
-        self.holder = ModelHolder()
-        self.holder.load()
-        self.batcher = Batcher(self.holder)
-
-    async def StreamPredictions(self, request_iterator, context):
-        # читаем входящий поток и отправляем запросы батчеру
-        async def produce():
-            async for req in request_iterator:
-                # Отправляем на батчинг и возвращаем результат, когда будет готов
-                future = await self.batcher.add_request(req.correlation_id, req.text)
-                emb = await future
-                yield inference_pb2.PredictionResponse(
-                    correlation_id=req.correlation_id,
-                    embedding=emb
-                )
-        # Запускаем parallel flush loop
-        flush_task = asyncio.create_task(self.batcher.flush_loop())
-        try:
-            async for resp in produce():
-                await context.write(resp)
-        finally:
-            flush_task.cancel()
+QUEUE_PREPROCESS = "text:preprocess"
+QUEUE_TOKENS = "text:tokens"
 
 async def serve():
+    # Подключаемся к Redis (localhost:6379)
+    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+    # Инициализируем модель
+    model_holder = ModelHolder()
+    batcher = Batcher(model_holder)  # max_size=32, timeout=0.1
+
+    # Запускаем gRPC сервер
     server = grpc.aio.server()
-    inference_pb2_grpc.add_InferencePipelineServicer_to_server(InferenceServicer(), server)
+    servicer = InferenceServicer(r, QUEUE_PREPROCESS)
+    inference_pb2_grpc.add_InferencePipelineServicer_to_server(servicer, server)
     server.add_insecure_port('[::]:50051')
     await server.start()
     print("gRPC server started on port 50051")
+
+    # Запускаем фоновые обработчики
+    asyncio.create_task(preprocess_worker(r, model_holder, QUEUE_PREPROCESS, QUEUE_TOKENS))
+    asyncio.create_task(inference_worker(r, model_holder, QUEUE_TOKENS, batcher))
+    asyncio.create_task(batcher.flush_loop(r))
+
     await server.wait_for_termination()
 
 if __name__ == "__main__":
