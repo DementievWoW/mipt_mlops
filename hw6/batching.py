@@ -4,48 +4,43 @@ from collections import deque
 class Batcher:
     def __init__(self, model_holder, max_batch_size=32, timeout=0.1):
         self.holder = model_holder
-        self.max_batch_size = max_batch_size
+        self.max_size = max_batch_size
         self.timeout = timeout
         self.buffer = deque()
-        self.results = {}           # correlation_id -> Future
         self.lock = asyncio.Lock()
         self.flush_event = asyncio.Event()
+        self.process_callback = None   # async callable (corr_ids, embeddings)
 
-    async def add_request(self, correlation_id, text):
-        fut = asyncio.get_event_loop().create_future()
+    async def add(self, corr_id, text):
         async with self.lock:
-            self.buffer.append((correlation_id, text, fut))
-            if len(self.buffer) >= self.max_batch_size:
+            self.buffer.append({'corr_id': corr_id, 'text': text})
+            if len(self.buffer) >= self.max_size:
                 self.flush_event.set()
-        # запускаем таймер, если ещё не запущен
-        return await fut
 
     async def flush_loop(self):
-        """Фоновый цикл, сливающий буфер по событию или таймауту."""
         while True:
             try:
                 await asyncio.wait_for(self.flush_event.wait(), timeout=self.timeout)
             except asyncio.TimeoutError:
                 pass
             self.flush_event.clear()
-            await self._process_batch()
+            await self._process()
 
-    async def _process_batch(self):
+    async def _process(self):
         batch = []
         async with self.lock:
             if not self.buffer:
                 return
-            for _ in range(min(len(self.buffer), self.max_batch_size)):
-                batch.append(self.buffer.popleft())
-
-        corr_ids = [item[0] for item in batch]
-        texts = [item[1] for item in batch]
-        futures = [item[2] for item in batch]
-
-        # препроцессинг + инференс сразу для всего батча
-        tokenized = self.holder.preprocess(texts)   # батчевая токенизация
-        embeddings = self.holder.infer(tokenized)    # один эмбеддинг на каждый текст
-
-        # раскладываем результаты по фьючам
-        for corr_id, emb, fut in zip(corr_ids, embeddings, futures):
-            fut.set_result(emb)
+            batch = [self.buffer.popleft() for _ in range(min(len(self.buffer), self.max_size))]
+        if not batch:
+            return
+        corr_ids = [item['corr_id'] for item in batch]
+        texts = [item['text'] for item in batch]
+        try:
+            inputs = self.holder.preprocess(texts)
+            embeddings = self.holder.infer(inputs)
+        except Exception as e:
+            print(f"Batcher error: {e}")
+            return
+        if self.process_callback:
+            await self.process_callback(corr_ids, embeddings)

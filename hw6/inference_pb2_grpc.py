@@ -25,8 +25,9 @@ if _version_not_supported:
     )
 
 
-class InferencePipelineStub(object):
-    """Missing associated documentation comment in .proto file."""
+class InferenceServiceStub(object):
+    """Сервис для внешнего клиента
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -35,14 +36,15 @@ class InferencePipelineStub(object):
             channel: A grpc.Channel.
         """
         self.Predict = channel.unary_unary(
-                '/inference.InferencePipeline/Predict',
+                '/inference.InferenceService/Predict',
                 request_serializer=inference__pb2.PredictionRequest.SerializeToString,
                 response_deserializer=inference__pb2.PredictionResponse.FromString,
                 _registered_method=True)
 
 
-class InferencePipelineServicer(object):
-    """Missing associated documentation comment in .proto file."""
+class InferenceServiceServicer(object):
+    """Сервис для внешнего клиента
+    """
 
     def Predict(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -51,7 +53,7 @@ class InferencePipelineServicer(object):
         raise NotImplementedError('Method not implemented!')
 
 
-def add_InferencePipelineServicer_to_server(servicer, server):
+def add_InferenceServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Predict': grpc.unary_unary_rpc_method_handler(
                     servicer.Predict,
@@ -60,14 +62,15 @@ def add_InferencePipelineServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'inference.InferencePipeline', rpc_method_handlers)
+            'inference.InferenceService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('inference.InferencePipeline', rpc_method_handlers)
+    server.add_registered_method_handlers('inference.InferenceService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class InferencePipeline(object):
-    """Missing associated documentation comment in .proto file."""
+class InferenceService(object):
+    """Сервис для внешнего клиента
+    """
 
     @staticmethod
     def Predict(request,
@@ -83,9 +86,84 @@ class InferencePipeline(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/inference.InferencePipeline/Predict',
+            '/inference.InferenceService/Predict',
             inference__pb2.PredictionRequest.SerializeToString,
             inference__pb2.PredictionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class ResultServiceStub(object):
+    """Сервис для внутреннего взаимодействия между Gateway и Worker
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.SendResult = channel.unary_unary(
+                '/inference.ResultService/SendResult',
+                request_serializer=inference__pb2.ResultRequest.SerializeToString,
+                response_deserializer=inference__pb2.ResultResponse.FromString,
+                _registered_method=True)
+
+
+class ResultServiceServicer(object):
+    """Сервис для внутреннего взаимодействия между Gateway и Worker
+    """
+
+    def SendResult(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ResultServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'SendResult': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendResult,
+                    request_deserializer=inference__pb2.ResultRequest.FromString,
+                    response_serializer=inference__pb2.ResultResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'inference.ResultService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('inference.ResultService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class ResultService(object):
+    """Сервис для внутреннего взаимодействия между Gateway и Worker
+    """
+
+    @staticmethod
+    def SendResult(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/inference.ResultService/SendResult',
+            inference__pb2.ResultRequest.SerializeToString,
+            inference__pb2.ResultResponse.FromString,
             options,
             channel_credentials,
             insecure,

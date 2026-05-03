@@ -1,11 +1,21 @@
-# Количество реплик
-replicaCount: 1
+# Переопределяется при необходимости
+gateway:
+  image:
+    repository: grpc-gateway
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 50051
 
-image:
-  repository: grpc-inference
-  tag: latest
-  pullPolicy: IfNotPresent
+worker:
+  image:
+    repository: grpc-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
 
-service:
-  type: ClusterIP
-  port: 50051
+redis:
+  image: redis:7-alpine
+  service:
+    port: 6379

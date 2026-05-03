@@ -1,8 +1,15 @@
 syntax = "proto3";
+
 package inference;
 
-service InferencePipeline {
+// Сервис для внешнего клиента
+service InferenceService {
   rpc Predict (PredictionRequest) returns (PredictionResponse);
+}
+
+// Сервис для внутреннего взаимодействия между Gateway и Worker
+service ResultService {
+  rpc SendResult (ResultRequest) returns (ResultResponse);
 }
 
 message PredictionRequest {
@@ -13,4 +20,13 @@ message PredictionRequest {
 message PredictionResponse {
   string correlation_id = 1;
   repeated float embedding = 2;
+}
+
+message ResultRequest {
+  string correlation_id = 1;
+  repeated float embedding = 2;
+}
+
+message ResultResponse {
+  string status = 1; // "OK"
 }

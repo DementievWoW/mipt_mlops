@@ -1,0 +1,14 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY inference_pb2.py inference_pb2_grpc.py /app/
+COPY gateway.py /app/
+COPY proto/ /app/proto/
+
+EXPOSE 50051
+
+CMD ["python", "gateway.py"]

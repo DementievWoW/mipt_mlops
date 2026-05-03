@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "grpc-inference.fullname" . }}-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "grpc-inference.name" . }}-redis
+  template:
+    metadata:
+      labels:
+        app: {{ include "grpc-inference.name" . }}-redis
+    spec:
+      containers:
+      - name: redis
+        image: {{ .Values.redis.image }}
+        ports:
+        - containerPort: 6379
+          name: redis
