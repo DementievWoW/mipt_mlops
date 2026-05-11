@@ -1,0 +1,39 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hw7
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: hw7/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        run: python ml_pipeline.py
+
+      - name: Make pipeline reproducible
+        run: |
+          # Сохраняем артефакты, нужные для воспроизводимости:
+          # обученную модель, фиксированные зависимости и сам код.
+          mkdir -p artifacts
+          cp model.joblib requirements.txt ml_pipeline.py artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-artifacts
+          path: hw7/artifacts/
