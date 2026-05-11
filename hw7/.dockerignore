@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+.git
+.gitignore
+.github
+.venv
+venv
+model.joblib
+model_meta.json
+ОБЪЯСНЕНИЯ.md
+README.md
+doc
