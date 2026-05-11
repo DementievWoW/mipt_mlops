@@ -24,21 +24,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase image name
+        id: img
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}/ml-service" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker image
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}/ml-service
-          TAG=${{ github.sha }}
+          IMAGE="${{ steps.img.outputs.name }}"
+          TAG="${{ github.sha }}"
           docker build \
             --build-arg MODEL_VERSION=${{ vars.MODEL_VERSION || 'v1.1.0' }} \
-            -t $IMAGE:$TAG \
-            -t $IMAGE:latest .
-          docker push $IMAGE:$TAG
-          docker push $IMAGE:latest
+            -t "$IMAGE:$TAG" \
+            -t "$IMAGE:latest" .
+          docker push "$IMAGE:$TAG"
+          docker push "$IMAGE:latest"
 
       - name: Health check
         run: |
-          docker run -d --name smoke -p 8000:8000 \
-            ghcr.io/${{ github.repository }}/ml-service:${{ github.sha }}
+          IMAGE="${{ steps.img.outputs.name }}"
+          docker run -d --name smoke -p 8000:8000 "$IMAGE:${{ github.sha }}"
           for i in {1..15}; do
             sleep 2
             if curl -sf http://localhost:8000/health; then
