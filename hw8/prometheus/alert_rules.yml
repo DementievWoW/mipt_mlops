@@ -1,0 +1,41 @@
+groups:
+  - name: ml_service_slo
+    interval: 15s
+    rules:
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(request_latency_seconds_bucket{service="ml_service"}[1m]))
+          ) > 1
+        for: 1m
+        labels:
+          severity: warning
+          slo: latency_p95
+        annotations:
+          summary: "Высокий p95-latency ML-сервиса"
+          description: "p95 latency > 1s держится более 1 минуты (текущее значение {{ $value | printf \"%.2f\" }}s)."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(requests_total{service="ml_service",status=~"5.."}[5m]))
+            /
+          sum(rate(requests_total{service="ml_service"}[5m]))
+          > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          slo: error_rate
+        annotations:
+          summary: "Высокий error rate ML-сервиса"
+          description: "Доля 5xx > 1% в течение 2 минут."
+
+      - alert: ServiceDown
+        expr: up{job="ml_service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          slo: availability
+        annotations:
+          summary: "ML-сервис недоступен"
+          description: "Prometheus не может собрать метрики с ml_service более 1 минуты."

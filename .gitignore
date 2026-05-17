@@ -17,3 +17,4 @@ data/*.csv
 models/*.pkl
 !models/.gitkeep
 hw6/.venv
+hw7/.venv

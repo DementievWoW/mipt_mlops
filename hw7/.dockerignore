@@ -7,6 +7,5 @@ __pycache__
 venv
 model.joblib
 model_meta.json
-ОБЪЯСНЕНИЯ.md
 README.md
 doc

@@ -1,42 +1,31 @@
 asyncapi: 2.6.0
 info:
-  title: ML Inference Pipeline (Redis + gRPC)
+  title: ML Inference Pipeline (Redis Streams)
   version: 1.0.0
   description: >
-    Событийно-ориентированная архитектура с цепочкой из трёх этапов:
-    1) text.preprocess – отправка запроса в Redis-очередь "text:preprocess"
-    2) model.inference – Worker читает очередь, батчит и выполняет инференс
-    3) result.persist – Worker вызывает gRPC SendResult у Gateway, результат возвращается клиенту
+    Конвейер из трёх событий, обменивающихся через Redis Lists.
+    1. `text:preprocess` – приём сырого текста.
+    2. `text:tokens` – токенизированные данные.
+    3. `result:<correlation_id>` – готовые эмбеддинги.
 servers:
-  grpc-gateway:
-    url: grpc-gateway-service:50051
-    protocol: grpc
+  redis:
+    url: localhost:6379
+    protocol: redis
 channels:
-  text/preprocess:
-    description: Очередь Redis List для запросов на обработку
+  text:preprocess:
     publish:
       message:
         $ref: '#/components/messages/TextRequest'
+  text:tokens:
     subscribe:
       message:
-        $ref: '#/components/messages/TextRequest'
+        $ref: '#/components/messages/TokenizedRequest'
+  result/{correlation_id}:
+    publish:
+      message:
+        $ref: '#/components/messages/PredictionResult'
 components:
   messages:
-    TextRequest:
-      payload:
-        type: object
-        properties:
-          correlation_id:
-            type: string
-          text:
-            type: string
-    PredictionResponse:
-      payload:
-        type: object
-        properties:
-          correlation_id:
-            type: string
-          embedding:
-            type: array
-            items:
-              type: number
+    TextRequest: ...
+    TokenizedRequest: ...
+    PredictionResult: ...
