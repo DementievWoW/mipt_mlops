@@ -53,21 +53,30 @@ ML-сервис (рекомендация / классификация)
 
 ```
 hw8/
-├── docker-compose.yml          # ml_service + prometheus + grafana
+├── docker-compose.yml          # ml_service + prometheus + alertmanager + grafana
+├── .env                        # секреты Telegram (НЕ коммитим, в .gitignore)
+├── .env.example                # шаблон секретов для других участников
 ├── ml_service/
-│   ├── app.py                  # FastAPI + sklearn (Iris) + /metrics
+│   ├── app.py                  # FastAPI + sklearn (Iris) + /metrics + /slow + /fail
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── prometheus/
-│   ├── prometheus.yml          # scrape config
-│   └── alert_rules.yml         # SLO alerts
+│   ├── prometheus.yml          # scrape config + alerting → alertmanager:9093
+│   └── alert_rules.yml         # 3 SLO алерта
+├── alertmanager/
+│   └── alertmanager.yml.template   # шаблон с ${TELEGRAM_*} плейсхолдерами
 ├── grafana/
 │   ├── provisioning/           # datasource + dashboard loader
 │   └── dashboards/ml_service.json   # экспортируемый дашборд
 ├── drift/                      # Шаг 3: EvidentlyAI
-├── dqops/                      # Шаг 4: DQOps
-├── diagrams/                   # Шаг 5: схема VPP
-├── screenshots/                # скриншоты дашборда, алерта, инцидента
+│   ├── drift_demo.ipynb        # ноутбук: эксперимент + HTML отчёты + JSON
+│   ├── requirements.txt        # evidently, sklearn, pandas
+│   ├── data_drift_report.html  # отчёт о data drift (6 из 13 фич дрифтнули)
+│   ├── model_performance_report.html  # деградация модели по классам
+│   └── metrics_summary.json    # acc/F1 на reference vs current
+├── dqops/                      # Шаг 4: DQOps (заглушка, реализуется)
+├── diagrams/                   # Шаг 5: схема VPP (заглушка, реализуется)
+├── screenshots/                # дашборд, алерт, Telegram, drift, инцидент
 ├── README.md                   # этот файл
 └── EXPLANATION.md              # построчные пояснения для учёбы
 ```
@@ -139,12 +148,34 @@ done
 
 ---
 
-## 5. Следующие шаги (модули задания)
+## 5. Telegram-уведомления
 
-- [ ] Шаг 3 — Drift demo через EvidentlyAI → [drift/](drift/)
+Алерты Prometheus → Alertmanager → Telegram (бот, личный чат).
+
+```bash
+# секреты (.env в .gitignore, права 600)
+TELEGRAM_BOT_TOKEN=...   # @BotFather → /newbot
+TELEGRAM_CHAT_ID=...     # @userinfobot
+```
+
+Конфиг бота — [alertmanager/alertmanager.yml.template](alertmanager/alertmanager.yml.template). При запуске init-контейнер `alertmanager-init` через `envsubst` подставляет секреты и кладёт готовый конфиг в named volume.
+
+Проверка:
+```bash
+curl -s http://localhost:9090/api/v1/alertmanagers     # должен быть activeAlertmanagers
+curl -s http://localhost:9093/api/v2/status            # cluster: ready
+curl -s http://localhost:9093/api/v2/alerts            # текущие алерты в Alertmanager
+sudo docker logs hw8_alertmanager --tail 30            # логи (если Telegram ругается)
+```
+
+## 6. Следующие шаги (модули задания)
+
+- [x] Шаг 1 — Дерево метрик и SLO → раздел 1 README
+- [x] Шаг 2 — Prometheus + Grafana + 3 алерта + Telegram → `docker-compose.yml`
+- [x] Шаг 3 — Drift demo + деградация модели через EvidentlyAI → [drift/](drift/)
 - [ ] Шаг 4 — Data Quality инцидент в DQOps → [dqops/](dqops/)
 - [ ] Шаг 5 — Архитектурная схема Virtual Product Placement (Kappa) → [diagrams/](diagrams/)
-- [ ] Скриншоты: дашборд, Pending/Firing алерта, инцидент DQOps, диаграмма → [screenshots/](screenshots/)
+- [ ] Скриншоты: дашборд, Pending/Firing алерта, Telegram, drift-отчёт, инцидент DQOps, диаграмма → [screenshots/](screenshots/)
 
 ---
 

@@ -1,0 +1,6 @@
+evidently>=0.4.30,<0.5
+scikit-learn>=1.4,<1.6
+pandas>=2.0,<3.0
+numpy>=1.22,<2.1
+matplotlib>=3.7
+jupyterlab>=4.0

@@ -1,0 +1,11 @@
+{
+  "accuracy_reference": 1.0,
+  "accuracy_current_drifted": 0.4044943820224719,
+  "f1_macro_reference": 1.0,
+  "f1_macro_current_drifted": 0.3670879283050256,
+  "drifted_columns": 6,
+  "share_of_drifted_columns": 0.4,
+  "dataset_drift": true,
+  "data_drift_report": "data_drift_report.html",
+  "model_performance_report": "model_performance_report.html"
+}
