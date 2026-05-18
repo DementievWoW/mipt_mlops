@@ -25,6 +25,46 @@ services:
       - "9090:9090"
     depends_on:
       - ml_service
+      - alertmanager
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  alertmanager-init:
+    image: alpine:3.20
+    container_name: hw8_alertmanager_init
+    env_file:
+      - .env
+    volumes:
+      - ./alertmanager/alertmanager.yml.template:/template/alertmanager.yml.template:ro
+      - alertmanager_config:/config
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        apk add --no-cache gettext >/dev/null
+        envsubst '$$TELEGRAM_BOT_TOKEN $$TELEGRAM_CHAT_ID' \
+          < /template/alertmanager.yml.template \
+          > /config/alertmanager.yml
+        echo "Rendered alertmanager.yml:"
+        cat /config/alertmanager.yml
+    restart: "no"
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: hw8_alertmanager
+    depends_on:
+      alertmanager-init:
+        condition: service_completed_successfully
+    volumes:
+      - alertmanager_config:/etc/alertmanager:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    ports:
+      - "9093:9093"
     networks:
       - monitoring
     restart: unless-stopped
@@ -55,3 +95,5 @@ networks:
 volumes:
   prometheus_data:
   grafana_data:
+  alertmanager_data:
+  alertmanager_config:

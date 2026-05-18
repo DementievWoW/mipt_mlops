@@ -1,0 +1,11 @@
+# Секреты для Alertmanager (Telegram bot token, chat id) — НЕ коммитим!
+.env
+
+# Сгенерированный из шаблона конфиг Alertmanager (содержит подставленные секреты)
+alertmanager/alertmanager.yml
+
+# Локальные артефакты Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
